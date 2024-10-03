@@ -5,15 +5,21 @@ import (
 	"time"
 )
 
-func main() {
+func main1() {
 	channel := make(chan map[string]int8)
+	channel2 := make(chan map[string]int8)
 
 	go corredor(1, channel)
-	go corredor(2, channel)
+	go corredor(2, channel2)
 
 	vencedor := <- channel
+	vencedor2 := <- channel2
+
 	fmt.Println("VENCEDOR:",vencedor["ID"])
 	fmt.Println("PONTOS:",vencedor["PONTOS"])
+
+	fmt.Println("VENCEDOR:",vencedor2["ID"])
+	fmt.Println("PONTOS:",vencedor2["PONTOS"])
 }
 
 func corredor(id int8, channel chan map[string]int8) {
