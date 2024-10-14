@@ -7,7 +7,7 @@ import (
 	
 
 func Connect() (*sql.DB, error) {
-	stringConnection := "script:12345@/golang?charset=utf8&parseTime=True&loc=Local"
+	stringConnection := "script:123456789@tcp(192.168.0.20:3306)/golang?charset=utf8&parseTime=True&loc=Local"
 
 	db, err := sql.Open("mysql", stringConnection)
 	if err != nil {

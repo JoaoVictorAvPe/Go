@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type user struct {
@@ -29,7 +32,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(user)
 	db, err := database.Connect()
 	if err != nil {
 		w.Write([]byte("Failed to connect on database"))
@@ -58,4 +60,71 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("User %s has been inserted sucessfuly. ID: %d", user.Name, idInserted)))
+}
+
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	db, err := database.Connect()
+	if err != nil {
+		w.Write([]byte("Failed to connect to database"))
+		return
+	}
+	defer db.Close()
+
+	lines, err := db.Query("SELECT * FROM usuarios")
+	if err != nil {
+		w.Write([]byte("Failed to get users from database"))
+		return
+	}
+	defer lines.Close()
+
+	var users []user
+	for lines.Next() {
+		var userTemp user
+
+		if err := lines.Scan(&userTemp.ID, &userTemp.Name, &userTemp.Email); err != nil {
+			w.Write([]byte("Failed to scan users"))
+		}
+
+		users = append(users, userTemp)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(users); err != nil {
+		w.Write([]byte("Failed to convert data to json"))
+		return
+	}
+}
+
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	Id, err := strconv.ParseUint(params["id"], 10, 32)
+	if err != nil {
+		w.Write([]byte("Failed to convert param to integer"))
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		w.Write([]byte("Failed to connect to database"))
+	}
+
+	line, err := db.Query("SELECT * FROM usuarios WHERE id = ?", Id)
+	if err != nil {
+		w.Write([]byte("Failed to get values from database"))
+	}
+
+	var user user
+	if line.Next() {
+		if err := line.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+			w.Write([]byte("Failed to scan values from database"))
+			return
+		}
+	}
+
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		w.Write([]byte("Failed to convert user to json"))
+		return
+	}
+
 }
