@@ -2,8 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"strings"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html/charset"
@@ -20,6 +21,7 @@ func GetInformationsFromSefaz() ([]string, []string, []string) {
 
 	body := document.Find("body")
 	if body.Length() == 0 {
+		log.Println("Error, body length is zero")
 		panic("Error, body length is zero")
 	}
 
@@ -40,8 +42,11 @@ func GetInformationsFromSefaz() ([]string, []string, []string) {
 			}
 		case "#text":
 			valuesSlice = append(valuesSlice, element.Text())
+		default:
+			errorMessage := "A new tag has been identified in the document"
+			log.Println(errorMessage)
+			panic(errorMessage)
 		}
-
 	})
 
 	return namesSlice, statusSlice, valuesSlice
@@ -50,20 +55,27 @@ func GetInformationsFromSefaz() ([]string, []string, []string) {
 func getHTMLDocument(url string) *goquery.Document {
 	response, err := http.Get(url)
 	if err != nil {
-		panic("Faild to get NFCe web page")
+		errorMessage := "Faild to get NFCe web page: " + err.Error()
+		log.Println(errorMessage)
+		panic(errorMessage)
 	}
 	if response.StatusCode != 200 {
-		panic(fmt.Sprintf("HTTP Error %d: %s", response.StatusCode, response.Status))
+		errorMessage := fmt.Sprintf("HTTP Error %d: %s", response.StatusCode, response.Status)
+		log.Println(errorMessage)
+		panic(errorMessage)
 	}
 	defer response.Body.Close()
 
 	utf8Reader, err := charset.NewReader(response.Body, response.Header.Get("Content-Type"))
 	if err != nil {
-		panic("Faild to convert web page to UTF-8")
+		errorMessage := "Faild to convert web page to UTF-8: " + err.Error()
+		log.Println(errorMessage)
+		panic(errorMessage)
 	}
 
 	document, err := goquery.NewDocumentFromReader(utf8Reader)
 	if err != nil {
+		log.Println(err)
 		panic(err)
 	}
 
@@ -115,14 +127,12 @@ func biggestSlice(slice1, slice2, slice3 []string) []string {
 
 func SanitazeSefazSlice(sefazSlice []Sefaz) []Sefaz {
 	var sanitizedSlice []Sefaz
-	// re := regexp.MustCompile(`\d+(ms|s)`)
 
 	for i, sefaz := range sefazSlice {
 		sliceSplited := strings.Split(sefaz.Media, "ms")
 		sefaz.Media = sliceSplited[2] + "ms"
 
 		if sefaz.Name == "" {
-			// sefaz.Name = re.ReplaceAllString(sefazSlice[i - 1].Media, "")
 			valuesAnteriorSplited := strings.Split(sefazSlice[i-1].Media, "ms")
 			sefaz.Name = valuesAnteriorSplited[len(valuesAnteriorSplited)-1]
 		}
